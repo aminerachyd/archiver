@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: archiver
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: archiver-secret
+  namespace: archiver
+type: Opaque
+stringData:
+  # Update these with your value
+  AZURE_SERVICE_URL: <YOUR_SERVICE_URL>
+  AZURE_SAS_TOKEN: <YOUR_SAS_TOKEN>
+  AZURE_TENANT_ID: <YOUR_TENANT_ID>
+  AZURE_CLIENT_ID: <YOUR_CLIENT_ID>
+  AZURE_CLIENT_SECRET: <YOUR_CLIENT_SECRET>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: archiver-api
+  namespace: archiver
+  labels:
+    app: archiver-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: archiver-api
+  template:
+    metadata:
+      labels:
+        app: archiver-api
+    spec:
+      containers:
+        - name: archiver-api
+          # If you want to use your own image, update this field
+          image: quay.io/aminerachyd/archiver:1
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          env:
+            - name: AZURE_SERVICE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: archiver-secret
+                  key: AZURE_SERVICE_URL
+            - name: AZURE_SAS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: archiver-secret
+                  key: AZURE_SAS_TOKEN
+            - name: AZURE_TENANT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: archiver-secret
+                  key: AZURE_TENANT_ID
+            - name: AZURE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: archiver-secret
+                  key: AZURE_CLIENT_ID
+            - name: AZURE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: archiver-secret
+                  key: AZURE_CLIENT_SECRET
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: archiver-api
+  namespace: archiver
+spec:
+  selector:
+    app: archiver-api
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 8080
+  # Note that this field works only for metallb loadbalancer
+  loadBalancerIP: <SERIVCE_ADDRESS>
