@@ -22,9 +22,8 @@ func main() {
 	}
 
 	app := application{
-		port: portInt,
-		// TODO Make this configurable, different types of stores ?
-		store: store.InitAzureStore(),
+		port:  portInt,
+		store: store.InitStore(),
 	}
 
 	app.start()

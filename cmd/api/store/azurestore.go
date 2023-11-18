@@ -22,7 +22,7 @@ type AzureStore struct {
 	SASToken   string
 }
 
-func InitAzureStore() Store {
+func InitAzureStore() (Store, error) {
 	ctx := context.Background()
 
 	// TODO Better credentials management ?
@@ -33,10 +33,14 @@ func InitAzureStore() Store {
 	// - AZURE_CLIENT_ID
 	// - AZURE_CLIENT_SECRET
 	credential, err := azidentity.NewDefaultAzureCredential(nil)
-	handleError(err)
+	if err != nil {
+		return nil, err
+	}
 
 	client, err := azblob.NewClient(serviceURL, credential, nil)
-	handleError(err)
+	if err != nil {
+		return nil, err
+	}
 
 	store := AzureStore{
 		ctx:        ctx,
@@ -46,7 +50,7 @@ func InitAzureStore() Store {
 		SASToken:   SASToken,
 	}
 
-	return store
+	return store, nil
 }
 
 func (s AzureStore) GetArchive(archiveName string) (archive, error) {
@@ -115,10 +119,16 @@ func (s AzureStore) PutArchive(archiveName string, payload []byte) error {
 	// Thus the need of the extra SAS token for the Azure store setup
 	err = s.setAccessTier(archiveName)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	return nil
+}
+
+func (s AzureStore) DeleteArchive(archiveName string) error {
+	_, err := s.Client.DeleteBlob(s.ctx, s.container, archiveName, nil)
+
+	return err
 }
 
 func (s *AzureStore) setAccessTier(archiveName string) error {

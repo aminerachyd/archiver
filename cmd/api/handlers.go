@@ -28,6 +28,8 @@ func (a *application) singleArchiveHandler(w http.ResponseWriter, r *http.Reques
 		getSingleArchiveHandler(w, r, a.store)
 	case http.MethodPut:
 		putSingleArchiveHandler(w, r, a.store)
+	case http.MethodDelete:
+		deleteSingleArchiveHandler(w, r, a.store)
 	default:
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 	}
@@ -60,6 +62,17 @@ func putSingleArchiveHandler(w http.ResponseWriter, r *http.Request, s store.Sto
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(http.StatusCreated)
+}
+
+func deleteSingleArchiveHandler(w http.ResponseWriter, r *http.Request, s store.Store) {
+	archiveName := r.URL.Path[len("/v1/archives/"):]
+	err := s.DeleteArchive(archiveName)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func getArchivesInfoHandler(w http.ResponseWriter, r *http.Request, s store.Store) {
