@@ -23,6 +23,7 @@ docker run -d -p 8080:8080 \
  -e AZURE_CLIENT_ID=<CLIENT_ID> \
  -e AZURE_CLIENT_SECRET=<CLIENT_SECRET> \
  -e AZURE_ARCHIVES_CONTAINER=<YOUR_CONTAINER_IN_STORAGEACCOUNT> \
+ -e ARCHIVER_FILESYSTEM_PATH=<LOCAL_PATH> \ # For local storage on disk
 archiver
 
 # Check if the API is alive

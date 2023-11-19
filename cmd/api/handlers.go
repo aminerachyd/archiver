@@ -56,13 +56,14 @@ func putSingleArchiveHandler(w http.ResponseWriter, r *http.Request, s store.Sto
 	payload, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
+		log.Printf("error while PUT of [%s]. Error was [%s]\n", archiveName, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	err = s.PutArchive(archiveName, payload)
 	if err != nil {
-		log.Printf("Got error %s", err)
+		log.Printf("error while PUT of [%s]. Error was [%s]\n", archiveName, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -72,6 +73,7 @@ func putSingleArchiveHandler(w http.ResponseWriter, r *http.Request, s store.Sto
 func deleteSingleArchiveHandler(w http.ResponseWriter, r *http.Request, s store.Store, archiveName string) {
 	err := s.DeleteArchive(archiveName)
 	if err != nil {
+		log.Printf("error while DELETE of [%s]. Error was [%s]\n", archiveName, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -83,7 +85,7 @@ func getArchivesInfoHandler(w http.ResponseWriter, r *http.Request, s store.Stor
 
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
-		log.Printf("Got error %s", err)
+		log.Printf("error while GET of archives infos. Error was [%s]\n", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}

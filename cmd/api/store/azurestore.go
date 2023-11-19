@@ -80,8 +80,8 @@ func (s AzureStore) GetArchive(archiveName string) (archive, error) {
 	return archive, nil
 }
 
-func (s AzureStore) GetArchivesInfo() []archiveMetadata {
-	archivesInfo := []archiveMetadata{}
+func (s AzureStore) GetArchivesInfo() map[string]archiveMetadata {
+	archivesInfo := map[string]archiveMetadata{}
 
 	pager := s.Client.NewListBlobsFlatPager(s.container, &azblob.ListBlobsFlatOptions{
 		Include: azblob.ListBlobsInclude{Snapshots: true, Versions: true, Metadata: true},
@@ -95,10 +95,10 @@ func (s AzureStore) GetArchivesInfo() []archiveMetadata {
 		}
 
 		for _, blob := range resp.Segment.BlobItems {
-			archivesInfo = append(archivesInfo, archiveMetadata{
+			archivesInfo[*blob.Name] = archiveMetadata{
 				Name:        *blob.Name,
 				SizeInBytes: *blob.Properties.ContentLength,
-			})
+			}
 		}
 	}
 
