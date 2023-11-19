@@ -16,6 +16,7 @@ stringData:
   AZURE_TENANT_ID: <YOUR_TENANT_ID>
   AZURE_CLIENT_ID: <YOUR_CLIENT_ID>
   AZURE_CLIENT_SECRET: <YOUR_CLIENT_SECRET>
+  AZURE_ARCHIVES_CONTAINER: <YOUR_CONTAINER_IN_STORAGEACCOUNT>
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -71,6 +72,11 @@ spec:
                 secretKeyRef:
                   name: archiver-secret
                   key: AZURE_CLIENT_SECRET
+            - name: AZURE_ARCHIVES_CONTAINER
+              valueFrom:
+                secretKeyRef:
+                  name: archiver-secret
+                  key: AZURE_ARCHIVES_CONTAINER
           ports:
             - containerPort: 8080
 ---

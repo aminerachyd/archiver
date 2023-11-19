@@ -23,20 +23,25 @@ func (a *application) archivesInfoHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (a *application) singleArchiveHandler(w http.ResponseWriter, r *http.Request) {
+	archiveName := r.URL.Path[len(V1_SINGLE_ARCHIVE):]
+	if archiveName == "" {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
 	switch r.Method {
 	case http.MethodGet:
-		getSingleArchiveHandler(w, r, a.store)
+		getSingleArchiveHandler(w, r, a.store, archiveName)
 	case http.MethodPut:
-		putSingleArchiveHandler(w, r, a.store)
+		putSingleArchiveHandler(w, r, a.store, archiveName)
 	case http.MethodDelete:
-		deleteSingleArchiveHandler(w, r, a.store)
+		deleteSingleArchiveHandler(w, r, a.store, archiveName)
 	default:
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 	}
 }
 
-func getSingleArchiveHandler(w http.ResponseWriter, r *http.Request, s store.Store) {
-	archiveName := r.URL.Path[len("/v1/archives/"):]
+func getSingleArchiveHandler(w http.ResponseWriter, r *http.Request, s store.Store, archiveName string) {
 	archive, err := s.GetArchive(archiveName)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
@@ -47,8 +52,7 @@ func getSingleArchiveHandler(w http.ResponseWriter, r *http.Request, s store.Sto
 	w.Write(archive.Payload)
 }
 
-func putSingleArchiveHandler(w http.ResponseWriter, r *http.Request, s store.Store) {
-	archiveName := r.URL.Path[len("/v1/archives/"):]
+func putSingleArchiveHandler(w http.ResponseWriter, r *http.Request, s store.Store, archiveName string) {
 	payload, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
@@ -65,8 +69,7 @@ func putSingleArchiveHandler(w http.ResponseWriter, r *http.Request, s store.Sto
 	w.WriteHeader(http.StatusCreated)
 }
 
-func deleteSingleArchiveHandler(w http.ResponseWriter, r *http.Request, s store.Store) {
-	archiveName := r.URL.Path[len("/v1/archives/"):]
+func deleteSingleArchiveHandler(w http.ResponseWriter, r *http.Request, s store.Store, archiveName string) {
 	err := s.DeleteArchive(archiveName)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

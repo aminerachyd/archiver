@@ -4,12 +4,16 @@ import (
 	"net/http"
 )
 
+const V1_HEALTH = "v1/health"
+const V1_ARCHIVES = "/v1/archives"
+const V1_SINGLE_ARCHIVE = "/v1/archives/"
+
 func (a *application) getRoutes() *http.ServeMux {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/v1/health", a.heatlhHandler)
-	mux.HandleFunc("/v1/archives", a.archivesInfoHandler)
-	mux.HandleFunc("/v1/archives/", a.singleArchiveHandler)
+	mux.HandleFunc(V1_HEALTH, a.heatlhHandler)
+	mux.HandleFunc(V1_ARCHIVES, a.archivesInfoHandler)
+	mux.HandleFunc(V1_SINGLE_ARCHIVE, a.singleArchiveHandler)
 
 	return mux
 }

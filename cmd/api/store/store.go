@@ -9,8 +9,8 @@ type Store interface {
 	DeleteArchive(archiveName string) error
 }
 
-// TODO Make this configurable, different types of stores ?
 func InitStore() Store {
+	// TODO Make this configurable, different types of stores ?
 	store, err := InitAzureStore()
 
 	if err != nil {

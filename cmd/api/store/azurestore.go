@@ -25,9 +25,10 @@ type AzureStore struct {
 func InitAzureStore() (Store, error) {
 	ctx := context.Background()
 
-	// TODO Better credentials management ?
+	// TODO Better credentials/envs management ?
 	serviceURL := os.Getenv("AZURE_SERVICE_URL")
 	SASToken := os.Getenv("AZURE_SAS_TOKEN")
+	containerName := os.Getenv("AZURE_ARCHIVES_CONTAINER")
 	// Envs needed for this:
 	// - AZURE_TENANT_ID
 	// - AZURE_CLIENT_ID
@@ -44,7 +45,7 @@ func InitAzureStore() (Store, error) {
 
 	store := AzureStore{
 		ctx:        ctx,
-		container:  "archives",
+		container:  containerName,
 		Client:     client,
 		serviceURL: serviceURL,
 		SASToken:   SASToken,
@@ -87,8 +88,11 @@ func (s AzureStore) GetArchivesInfo() []archiveMetadata {
 	})
 
 	for pager.More() {
-		resp, err := pager.NextPage(context.TODO())
-		handleError(err)
+		resp, err := pager.NextPage(s.ctx)
+		if err != nil {
+			log.Printf("Got error [%s]", err)
+			continue
+		}
 
 		for _, blob := range resp.Segment.BlobItems {
 			archivesInfo = append(archivesInfo, archiveMetadata{
@@ -151,10 +155,4 @@ func (s *AzureStore) setAccessTier(archiveName string) error {
 	}
 
 	return nil
-}
-
-func handleError(e error) {
-	if e != nil {
-		log.Fatalf("Error in azure store, error was [%s]", e)
-	}
 }

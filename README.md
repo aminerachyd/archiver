@@ -2,9 +2,12 @@
 
 ## Description
 
-An API to archive and store files.
+An API to archive and store files.  
+Currently only supports Azure Blob Storage.
 
 ## Deployment
+
+### Docker
 
 You can build and run the application with Docker:
 
@@ -12,8 +15,21 @@ You can build and run the application with Docker:
 # Build the image
 docker build -t archiver .
 
-# Run the container
-docker run -d -p 8080:8080 archiver
+# Run the container with Docker
+docker run -d -p 8080:8080 \
+ -e AZURE_SERVICE_URL=<BLOB_STORE_URL> \ # Url looks like https://<storageaccount>.blob.core.windows.net
+ -e AZURE_SAS_TOKEN=<SAS_TOKEN> \
+ -e AZURE_TENANT_ID=<TENANT_ID> \
+ -e AZURE_CLIENT_ID=<CLIENT_ID> \
+ -e AZURE_CLIENT_SECRET=<CLIENT_SECRET> \
+ -e AZURE_ARCHIVES_CONTAINER=<YOUR_CONTAINER_IN_STORAGEACCOUNT> \
+archiver
+
+# Check if the API is alive
+curl http://localhost:8080/v1/health
 ```
 
-You also have an example of a Kubernetes deployment in the `k8s` folder. Make sure to change the values of the environment variables in the Secret.
+### Kubernetes
+
+You have an example of a Kubernetes deployment in the `k8s` folder.  
+Make sure to change the values of the environment variables in the Secret.
