@@ -3,6 +3,7 @@ package main
 import (
 	"archiver/cmd/api/store"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -23,7 +24,7 @@ func main() {
 
 	app := application{
 		port:  portInt,
-		store: store.InitStore(),
+		store: store.InitStore(store.Azure | store.FileSystem), // could use some env variable config
 	}
 
 	app.start()
@@ -33,6 +34,6 @@ func (a *application) start() {
 	mux := a.getRoutes()
 	addr := fmt.Sprintf(":%d", a.port)
 
-	fmt.Printf("Starting server at port %d\n", a.port)
+	log.Printf("Starting server at port %d\n", a.port)
 	http.ListenAndServe(addr, mux)
 }

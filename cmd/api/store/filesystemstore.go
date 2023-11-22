@@ -16,7 +16,7 @@ func InitFileSystemStore() (Store, error) {
 	if _, err := os.ReadDir(archivesPath); err != nil {
 		err = os.Mkdir(archivesPath, 0777)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("couldn't initialize file system store. error was [%s]", err)
 		}
 	}
 
@@ -27,19 +27,19 @@ func InitFileSystemStore() (Store, error) {
 	return store, nil
 }
 
-func (s FileSystemStore) GetArchive(archiveName string) (archive, error) {
+func (s FileSystemStore) GetArchive(archiveName string) (*archive, error) {
 	filePath := fmt.Sprintf("%s/%s", s.archivesPath, archiveName)
 	payload, err := os.ReadFile(filePath)
 
 	archive := archive{
-		metadata: archiveMetadata{
-			Name:        archiveName,
-			SizeInBytes: int64(len(payload)),
-		},
 		Payload: payload,
+		metadata: archiveMetadata{
+			SizeInBytes: int64(len(payload)),
+			StoredIn:    []string{FileSystem.toString()},
+		},
 	}
 
-	return archive, err
+	return &archive, err
 }
 
 func (s FileSystemStore) GetArchivesInfo() map[string]archiveMetadata {
@@ -59,8 +59,8 @@ func (s FileSystemStore) GetArchivesInfo() map[string]archiveMetadata {
 				fileSize := info.Size()
 
 				metadata := archiveMetadata{
-					Name:        fileName,
 					SizeInBytes: fileSize,
+					StoredIn:    []string{FileSystem.toString()},
 				}
 				archivesMetadata[fileName] = metadata
 			}

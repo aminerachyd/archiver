@@ -11,7 +11,7 @@ const V1_SINGLE_ARCHIVE = "/v1/archives/"
 func (a *application) getRoutes() *http.ServeMux {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc(V1_HEALTH, a.heatlhHandler)
+	mux.HandleFunc(V1_HEALTH, a.healthHandler)
 	mux.HandleFunc(V1_ARCHIVES, a.archivesInfoHandler)
 	mux.HandleFunc(V1_SINGLE_ARCHIVE, a.singleArchiveHandler)
 

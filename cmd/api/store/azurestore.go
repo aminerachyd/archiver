@@ -35,12 +35,12 @@ func InitAzureStore() (Store, error) {
 	// - AZURE_CLIENT_SECRET
 	credential, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("couldn't initialize Azure store. error was [%s]", err)
 	}
 
 	client, err := azblob.NewClient(serviceURL, credential, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("couldn't initialize Azure system store. error was [%s]", err)
 	}
 
 	store := AzureStore{
@@ -54,17 +54,11 @@ func InitAzureStore() (Store, error) {
 	return store, nil
 }
 
-func (s AzureStore) GetArchive(archiveName string) (archive, error) {
-	archive := archive{
-		metadata: archiveMetadata{
-			Name: archiveName,
-		},
-	}
-
+func (s AzureStore) GetArchive(archiveName string) (*archive, error) {
 	get, err := s.Client.DownloadStream(s.ctx, s.container, archiveName, nil)
 	if err != nil {
 		log.Printf("Got error %s\n", err)
-		return archive, err
+		return nil, err
 	}
 	log.Printf("Fetched archive: %s\n", archiveName)
 
@@ -72,12 +66,18 @@ func (s AzureStore) GetArchive(archiveName string) (archive, error) {
 	retryReader := get.NewRetryReader(s.ctx, nil)
 	_, err = data.ReadFrom(retryReader)
 	if err != nil {
-		return archive, err
+		return nil, err
 	}
 
-	archive.Payload = data.Bytes()
+	archive := archive{
+		Payload: data.Bytes(),
+		metadata: archiveMetadata{
+			StoredIn:    []string{Azure.toString()},
+			SizeInBytes: int64(len(data.Bytes())),
+		},
+	}
 
-	return archive, nil
+	return &archive, nil
 }
 
 func (s AzureStore) GetArchivesInfo() map[string]archiveMetadata {
@@ -88,16 +88,16 @@ func (s AzureStore) GetArchivesInfo() map[string]archiveMetadata {
 	})
 
 	for pager.More() {
-		resp, err := pager.NextPage(s.ctx)
+		res, err := pager.NextPage(s.ctx)
 		if err != nil {
 			log.Printf("Got error [%s]", err)
 			continue
 		}
 
-		for _, blob := range resp.Segment.BlobItems {
+		for _, blob := range res.Segment.BlobItems {
 			archivesInfo[*blob.Name] = archiveMetadata{
-				Name:        *blob.Name,
 				SizeInBytes: *blob.Properties.ContentLength,
+				StoredIn:    []string{Azure.toString()},
 			}
 		}
 	}

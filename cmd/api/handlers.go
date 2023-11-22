@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-func (a *application) heatlhHandler(w http.ResponseWriter, r *http.Request) {
+func (a *application) healthHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "UP")
 }
 

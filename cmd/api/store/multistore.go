@@ -1,28 +1,34 @@
 package store
 
-import "maps"
+import (
+	"log"
+	"sync"
+)
 
-// TODO Manage
-// - Concurrent case, goroutines go brr
-// - Single store used in multistore case
 type MultiStore struct {
 	stores []Store
 }
 
-func InitMultiStore() (Store, error) {
+func InitMultiStore(flags storageType) (Store, error) {
 	stores := []Store{}
 
-	azureStore, err := InitAzureStore()
-	if err != nil {
-		return nil, err
+	if flags&Azure != 0 {
+		log.Println("Enabling Azure store")
+		azureStore, err := InitAzureStore()
+		if err != nil {
+			return nil, err
+		}
+		stores = append(stores, azureStore)
 	}
-	stores = append(stores, azureStore)
 
-	fsStore, err := InitFileSystemStore()
-	if err != nil {
-		return nil, err
+	if flags&FileSystem != 0 {
+		log.Println("Enabling file system store")
+		fsStore, err := InitFileSystemStore()
+		if err != nil {
+			return nil, err
+		}
+		stores = append(stores, fsStore)
 	}
-	stores = append(stores, fsStore)
 
 	multiStore := MultiStore{
 		stores: stores,
@@ -31,37 +37,76 @@ func InitMultiStore() (Store, error) {
 	return multiStore, nil
 }
 
-func (s MultiStore) GetArchive(archiveName string) (archive, error) {
-	var resultArchive archive
-	var err error
-	found := false
+func (s MultiStore) GetArchive(archiveName string) (*archive, error) {
+	archiveCh := make(chan *archive)
+	errCh := make(chan error, 1)
+
 	for _, store := range s.stores {
-		resultArchive, err = store.GetArchive(archiveName)
-		if err == nil {
-			found = true
-			break
+		storeClone := store
+		go func() {
+			archive, err := storeClone.GetArchive(archiveName)
+			if err != nil {
+				errCh <- err
+			} else {
+				archiveCh <- archive
+			}
+		}()
+	}
+
+	var err error
+
+	for i := len(s.stores); i > 0; {
+		select {
+		case <-archiveCh:
+			return <-archiveCh, nil
+		case <-errCh:
+			err = <-errCh
+			i--
 		}
 	}
 
-	if found {
-		return resultArchive, nil
-	} else {
-		return resultArchive, err
-	}
+	return nil, err
 }
 
 func (s MultiStore) GetArchivesInfo() map[string]archiveMetadata {
-	resultArchivesInfo := map[string]archiveMetadata{}
+	archivesInfoCh := make(chan map[string]archiveMetadata, len(s.stores))
+	var wg sync.WaitGroup
+
+	wg.Add(len(s.stores))
 	for _, store := range s.stores {
-		maps.Copy(resultArchivesInfo, store.GetArchivesInfo())
+		storeCopy := store
+		go func() {
+			archivesInfoCh <- storeCopy.GetArchivesInfo()
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	close(archivesInfoCh)
+	resultArchivesInfo := map[string]archiveMetadata{}
+
+	for m := range archivesInfoCh {
+		resultArchivesInfo = merge(m, resultArchivesInfo)
 	}
 
 	return resultArchivesInfo
 }
 
 func (s MultiStore) PutArchive(archiveName string, payload []byte) error {
+	errCh := make(chan error, len(s.stores))
+	var wg sync.WaitGroup
+
+	wg.Add(len(s.stores))
 	for _, store := range s.stores {
-		err := store.PutArchive(archiveName, payload)
+		storeCopy := store
+		go func() {
+			errCh <- storeCopy.PutArchive(archiveName, payload)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	close(errCh)
+
+	for err := range errCh {
 		if err != nil {
 			return err
 		}
@@ -71,8 +116,21 @@ func (s MultiStore) PutArchive(archiveName string, payload []byte) error {
 }
 
 func (s MultiStore) DeleteArchive(archiveName string) error {
+	errCh := make(chan error, len(s.stores))
+	var wg sync.WaitGroup
+
+	wg.Add(len(s.stores))
 	for _, store := range s.stores {
-		err := store.DeleteArchive(archiveName)
+		storeCopy := store
+		go func() {
+			errCh <- storeCopy.DeleteArchive(archiveName)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	close(errCh)
+
+	for err := range errCh {
 		if err != nil {
 			return err
 		}

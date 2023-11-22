@@ -3,7 +3,7 @@
 ## Description
 
 An API to archive and store files.  
-Currently only supports Azure Blob Storage.
+Currently supports Azure Blob Storage and file system storage.
 
 ## Deployment
 
