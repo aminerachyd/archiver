@@ -30,6 +30,15 @@ func InitMultiStore(flags storageType) (Store, error) {
 		stores = append(stores, fsStore)
 	}
 
+	if flags&TempFileSystem != 0 {
+		log.Println("Enabling temp file system store")
+		tmpFsStore, err := InitTempFileSystemStore()
+		if err != nil {
+			return nil, err
+		}
+		stores = append(stores, tmpFsStore)
+	}
+
 	multiStore := MultiStore{
 		stores: stores,
 	}

@@ -37,18 +37,21 @@ func merge(m1, m2 map[string]archiveMetadata) map[string]archiveMetadata {
 
 type storageType int
 
+const (
+	Azure storageType = 1 << iota
+	FileSystem
+	TempFileSystem
+)
+
 func (s storageType) toString() string {
 	switch s {
 	case Azure:
 		return "Azure"
 	case FileSystem:
 		return "FileSystem"
+	case TempFileSystem:
+		return "TempFileSystem"
 	default:
 		return "Unknown storage"
 	}
 }
-
-const (
-	Azure storageType = 1 << iota
-	FileSystem
-)

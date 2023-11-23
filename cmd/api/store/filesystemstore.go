@@ -8,20 +8,37 @@ import (
 
 type FileSystemStore struct {
 	archivesPath string
+	storageType  storageType
 }
 
 func InitFileSystemStore() (Store, error) {
 	archivesPath := os.Getenv("ARCHIVER_FILESYSTEM_PATH")
 
-	if _, err := os.ReadDir(archivesPath); err != nil {
-		err = os.Mkdir(archivesPath, 0777)
+	return initWithPath(archivesPath, false)
+}
+
+func InitTempFileSystemStore() (Store, error) {
+	archivesPath := "/tmp/archives"
+
+	return initWithPath(archivesPath, true)
+}
+
+func initWithPath(path string, isTemp bool) (Store, error) {
+	storageType := FileSystem
+	if isTemp {
+		storageType = TempFileSystem
+	}
+
+	if _, err := os.ReadDir(path); err != nil {
+		err = os.Mkdir(path, 0777)
 		if err != nil {
-			return nil, fmt.Errorf("couldn't initialize file system store. error was [%s]", err)
+			return nil, fmt.Errorf("couldn't initialize file system store of type [%s]. error was [%s]", storageType.toString(), err)
 		}
 	}
 
 	store := FileSystemStore{
-		archivesPath: archivesPath,
+		archivesPath: path,
+		storageType:  storageType,
 	}
 
 	return store, nil
@@ -35,7 +52,7 @@ func (s FileSystemStore) GetArchive(archiveName string) (*archive, error) {
 		Payload: payload,
 		metadata: archiveMetadata{
 			SizeInBytes: int64(len(payload)),
-			StoredIn:    []string{FileSystem.toString()},
+			StoredIn:    []string{s.storageType.toString()},
 		},
 	}
 
@@ -60,7 +77,7 @@ func (s FileSystemStore) GetArchivesInfo() map[string]archiveMetadata {
 
 				metadata := archiveMetadata{
 					SizeInBytes: fileSize,
-					StoredIn:    []string{FileSystem.toString()},
+					StoredIn:    []string{s.storageType.toString()},
 				}
 				archivesMetadata[fileName] = metadata
 			}

@@ -24,7 +24,7 @@ func main() {
 
 	app := application{
 		port:  portInt,
-		store: store.InitStore(store.Azure | store.FileSystem), // could use some env variable config
+		store: store.InitStore(store.Azure | store.FileSystem | store.TempFileSystem), // could use some env variable config
 	}
 
 	app.start()
