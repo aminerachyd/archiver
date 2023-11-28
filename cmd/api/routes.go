@@ -4,7 +4,7 @@ import (
 	"net/http"
 )
 
-const V1_HEALTH = "v1/health"
+const V1_HEALTH = "/v1/health"
 const V1_ARCHIVES = "/v1/archives"
 const V1_SINGLE_ARCHIVE = "/v1/archives/"
 
