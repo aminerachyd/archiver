@@ -86,10 +86,19 @@ func (s FileSystemStore) GetArchivesInfo() map[string]archiveMetadata {
 	return archivesMetadata
 }
 
-func (s FileSystemStore) PutArchive(archiveName string, payload []byte) error {
-	filePath := fmt.Sprintf("%s/%s", s.archivesPath, archiveName)
-	err := os.WriteFile(filePath, payload, 0666)
-	return err
+func (s FileSystemStore) PutArchive(archiveName string, payload []byte, dest *storageType) error {
+	if dest == nil {
+		return fmt.Errorf("no destination specified for Filesystem [%s] store", s.storageType.toString())
+	}
+
+	if *dest == FileSystem || *dest == TempFileSystem {
+		filePath := fmt.Sprintf("%s/%s", s.archivesPath, archiveName)
+		err := os.WriteFile(filePath, payload, 0666)
+		return err
+	}
+
+	log.Printf("wrong destination specified for Filesystem [%s] store [%v], skipping upload", s.storageType.toString(), dest.toString())
+	return nil
 }
 
 func (s FileSystemStore) DeleteArchive(archiveName string) error {

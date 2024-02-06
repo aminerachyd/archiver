@@ -5,7 +5,7 @@ import "log"
 type Store interface {
 	GetArchive(archiveName string) (*archive, error)
 	GetArchivesInfo() map[string]archiveMetadata
-	PutArchive(archiveName string, payload []byte) error
+	PutArchive(archiveName string, payload []byte, dest *storageType) error
 	DeleteArchive(archiveName string) error
 }
 

@@ -78,6 +78,7 @@ func (s MultiStore) GetArchive(archiveName string) (*archive, error) {
 }
 
 func (s MultiStore) GetArchivesInfo() map[string]archiveMetadata {
+	log.Printf("Fetching archives infos from stores")
 	archivesInfoCh := make(chan map[string]archiveMetadata, len(s.stores))
 	var wg sync.WaitGroup
 
@@ -100,7 +101,7 @@ func (s MultiStore) GetArchivesInfo() map[string]archiveMetadata {
 	return resultArchivesInfo
 }
 
-func (s MultiStore) PutArchive(archiveName string, payload []byte) error {
+func (s MultiStore) PutArchive(archiveName string, payload []byte, dest *storageType) error {
 	errCh := make(chan error, len(s.stores))
 	var wg sync.WaitGroup
 
@@ -108,7 +109,7 @@ func (s MultiStore) PutArchive(archiveName string, payload []byte) error {
 	for _, store := range s.stores {
 		storeCopy := store
 		go func() {
-			errCh <- storeCopy.PutArchive(archiveName, payload)
+			errCh <- storeCopy.PutArchive(archiveName, payload, dest)
 			wg.Done()
 		}()
 	}

@@ -105,27 +105,36 @@ func (s AzureStore) GetArchivesInfo() map[string]archiveMetadata {
 	return archivesInfo
 }
 
-func (s AzureStore) PutArchive(archiveName string, payload []byte) error {
-	if archiveName == "" {
-		return errors.New("archive name cannot be empty")
+func (s AzureStore) PutArchive(archiveName string, payload []byte, dest *storageType) error {
+	if dest == nil {
+		return fmt.Errorf("no destination specified for Azure store")
 	}
 
-	uploadOptions := azblob.UploadBufferOptions{}
+	if *dest == Azure {
+		if archiveName == "" {
+			return errors.New("archive name cannot be empty")
+		}
 
-	_, err := s.Client.UploadBuffer(s.ctx, s.container, archiveName, payload, &uploadOptions)
-	if err != nil {
-		return err
+		uploadOptions := azblob.UploadBufferOptions{}
+
+		_, err := s.Client.UploadBuffer(s.ctx, s.container, archiveName, payload, &uploadOptions)
+		if err != nil {
+			return err
+		}
+
+		// Dumb workaround because we can't set access tier directly when uploading (xref: https://stackoverflow.com/a/55899242)
+		// Have to make a second call to explicitely set the tier
+		// Call has to be an HTTP call because sdk doesn't support this operation
+		// Thus the need of the extra SAS token for the Azure store setup
+		err = s.setAccessTier(archiveName)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	}
 
-	// Dumb workaround because we can't set access tier directly when uploading (xref: https://stackoverflow.com/a/55899242)
-	// Have to make a second call to explicitely set the tier
-	// Call has to be an HTTP call because sdk doesn't support this operation
-	// Thus the need of the extra SAS token for the Azure store setup
-	err = s.setAccessTier(archiveName)
-	if err != nil {
-		return err
-	}
-
+	log.Printf("wrong destination specified for Azure store [%s], skipping upload", dest.toString())
 	return nil
 }
 

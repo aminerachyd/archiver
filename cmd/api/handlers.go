@@ -7,7 +7,11 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
+	"sync"
 )
+
+var DEFAULT_DESTINATIONS = []string{"azure, fs, tmpfs"}
 
 func (a *application) healthHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "UP")
@@ -61,12 +65,45 @@ func putSingleArchiveHandler(w http.ResponseWriter, r *http.Request, s store.Sto
 		return
 	}
 
-	err = s.PutArchive(archiveName, payload)
-	if err != nil {
-		log.Printf("error while PUT of [%s]. Error was [%s]\n", archiveName, err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
+	destinations, present := r.Header["X-Storage-Destinations"]
+	if !present {
+		// If no destination specified, upload to all stores
+		destinations = DEFAULT_DESTINATIONS
 	}
+	// Element at index 0 is a single string with header values separated by ","
+	destinations = strings.Split(destinations[0], ",")
+	log.Printf("Destinations to upload to [%v]", destinations)
+
+	var wg sync.WaitGroup
+	wg.Add(len(destinations))
+	errCh := make(chan error, len(destinations))
+	for _, dest := range destinations {
+		dest = strings.TrimSpace(dest)
+		storeType, err := store.Parse(dest)
+
+		if err != nil {
+			log.Printf("error while PUT of [%s]. Error was [%s]\n", archiveName, err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		go func() {
+			log.Printf("Uploading archive to store [%v]", storeType)
+			errCh <- s.PutArchive(archiveName, payload, &storeType)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	close(errCh)
+
+	for err := range errCh {
+		if err != nil {
+			log.Printf("error while PUT of [%s]. Error was [%s]\n", archiveName, err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	}
+
 	w.WriteHeader(http.StatusCreated)
 }
 

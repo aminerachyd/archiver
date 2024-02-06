@@ -1,5 +1,10 @@
 package store
 
+import (
+	"fmt"
+	"strings"
+)
+
 type archive struct {
 	metadata archiveMetadata
 	Payload  []byte
@@ -29,6 +34,8 @@ func merge(m1, m2 map[string]archiveMetadata) map[string]archiveMetadata {
 			}
 
 			result[k] = mergedMetadata
+		} else {
+			result[k] = v
 		}
 	}
 
@@ -54,4 +61,16 @@ func (s storageType) toString() string {
 	default:
 		return "Unknown storage"
 	}
+}
+
+func Parse(s string) (storageType, error) {
+	if strings.ToLower(s) == "azure" {
+		return Azure, nil
+	} else if strings.ToLower(s) == "fs" {
+		return FileSystem, nil
+	} else if strings.ToLower(s) == "tmpfs" {
+		return TempFileSystem, nil
+	}
+
+	return FileSystem, fmt.Errorf("couldn't parse storageType from given string [%s]", s)
 }
